@@ -84,7 +84,7 @@ namespace MSpace2.Controllers
                     return Json(new
                     {
                         success = true,
-                        averageRating = averageRating,
+                        averageRating = averageRating ?? 0, // Handle null by providing default value
                         ratingCount = ratingCount
                     });
                 }

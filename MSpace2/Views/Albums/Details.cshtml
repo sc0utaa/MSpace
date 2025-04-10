@@ -1,7 +1,7 @@
 ﻿@model MSpace2.Data.Entities.Albums
 @{
     ViewData["Title"] = "Details";
-    var averageRating = ViewBag.AverageRating;
+    var averageRating = ViewBag.AverageRating as double?;
     var ratingCount = ViewBag.RatingCount;
     var userRating = ViewBag.UserRating;
     var showAverage = ratingCount >= 2;
@@ -48,16 +48,16 @@
 <!-- Album Rating Section -->
 <div class="album-rating mt-4">
     <h4>Rating</h4>
-    
-    @if (showAverage)
+
+    @if (showAverage && averageRating.HasValue)
     {
         <div class="average-rating mb-3">
-            <strong>Average Rating:</strong> 
-            <span id="average-rating">@averageRating.Value.ToString("0.0")</span>/10 
+            <strong>Average Rating:</strong>
+            <span id="average-rating">@averageRating.Value.ToString("0.0")</span>/10
             <span class="text-muted">(@ratingCount ratings)</span>
         </div>
     }
-    
+
     @if (User.Identity.IsAuthenticated)
     {
         <div class="user-rating">
@@ -94,51 +94,53 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Handle AJAX rating submission
-            $('#ratingForm').on('submit', function(e) {
+            $('#ratingForm').on('submit', function (e) {
                 e.preventDefault();
-                
+
                 $.ajax({
                     url: '@Url.Action("Rate", "Albums")',
                     type: 'POST',
                     data: $(this).serialize(),
-                    success: function(result) {
+                    success: function (result) {
                         if (result.success) {
                             // Update the rating display
                             $('.rating-option').removeClass('selected');
                             $('.rating-option input:checked').closest('.rating-option').addClass('selected');
-                            
+
                             // Update average rating if we have enough ratings
-                            if (result.ratingCount >= 2) {
+                            if (result.ratingCount >= 2 && result.averageRating != null) {
                                 $('#average-rating').text(result.averageRating.toFixed(1));
                                 $('.average-rating').show();
+                            } else {
+                                $('.average-rating').hide();
                             }
-                            
+
                             // Show a success message
                             alert('Rating submitted successfully!');
                         }
                     },
-                    error: function() {
+                    error: function () {
                         alert('Error submitting rating. Please try again.');
                     }
                 });
             });
-            
+
             // Highlight selected rating when clicking
-            $('.rating-option').click(function() {
+            $('.rating-option').click(function () {
                 $('.rating-option').removeClass('selected');
                 $(this).addClass('selected');
             });
         });
     </script>
-    
+
     <style>
         .rating-selector {
             display: flex;
             margin-bottom: 15px;
         }
-        
+
         .rating-option {
             display: inline-block;
             width: 30px;
@@ -149,17 +151,17 @@
             margin-right: 5px;
             cursor: pointer;
         }
-        
-        .rating-option input {
-            display: none;
-        }
-        
-        .rating-option.selected {
-            background-color: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        
+
+            .rating-option input {
+                display: none;
+            }
+
+            .rating-option.selected {
+                background-color: #007bff;
+                color: white;
+                border-color: #007bff;
+            }
+
         .album-rating {
             background-color: #f8f9fa;
             padding: 15px;
