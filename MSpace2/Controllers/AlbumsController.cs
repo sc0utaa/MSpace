@@ -63,6 +63,35 @@ namespace MSpace2.Controllers
 
             return View(albums);
         }
+
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> Rate(int albumId, int rating)
+        {
+            if (User.Identity.IsAuthenticated)
+            {
+                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                // Save the rating
+                bool success = await _ratingService.RateAlbumAsync(albumId, userId, rating);
+
+                if (success)
+                {
+                    // Get updated rating info
+                    var averageRating = await _ratingService.GetAverageRatingAsync(albumId);
+                    var ratingCount = await _ratingService.GetRatingCountAsync(albumId);
+
+                    return Json(new
+                    {
+                        success = true,
+                        averageRating = averageRating,
+                        ratingCount = ratingCount
+                    });
+                }
+            }
+
+            return Json(new { success = false });
+        }
         [Authorize(Roles = "Admin")]
 
         // GET: Albums/Create
