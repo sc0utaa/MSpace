@@ -1,95 +1,144 @@
 ﻿@model MSpace2.Data.Entities.Albums
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Album Details";
     var averageRating = ViewBag.AverageRating as double?;
     var ratingCount = ViewBag.RatingCount;
     var userRating = ViewBag.UserRating;
     var showAverage = ratingCount >= 2;
 }
-
-<h1>Details</h1>
-<div>
-    <h4>Albums</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.ArtistName)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.ArtistName)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.ReleaseDate)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.ReleaseDate)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.CoverImageUrl)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.CoverImageUrl)
-        </dd>
-    </dl>
-</div>
-
-<!-- Album Rating Section -->
-<div class="album-rating mt-4">
-    <h4>Rating</h4>
-
-    @if (showAverage && averageRating.HasValue)
+@{
+    string formattedDate = "Unknown";
+    if (Model.ReleaseDate != null)
     {
-        <div class="average-rating mb-3">
-            <strong>Average Rating:</strong>
-            <span id="average-rating">@averageRating.Value.ToString("0.0")</span>/10
-            <span class="text-muted">(@ratingCount ratings)</span>
-        </div>
+        // If it's a string, parse it
+        if (DateTime.TryParse(Model.ReleaseDate.ToString(), out DateTime date))
+        {
+            formattedDate = date.ToString("MMMM d, yyyy");
+        }
     }
+}
 
-    @if (User.Identity.IsAuthenticated)
-    {
-        <div class="user-rating">
-            <form id="ratingForm" asp-action="Rate" asp-controller="Albums" method="post">
-                <input type="hidden" name="albumId" value="@Model?.Id" />
-                <div class="form-group">
-                    <label>Rate this album:</label>
-                    <div class="rating-selector">
-                        @for (int i = 1; i <= 10; i++)
-                        {
-                            <label class="rating-option @(userRating == i ? "selected" : "")">
-                                <input type="radio" name="rating" value="@i" @(userRating == i ? "checked" : "") />
-                                <span>@i</span>
-                            </label>
-                        }
-                    </div>
+<div class="album-details-container">
+    <div class="details-header">
+        <h1>Album Details</h1>
+        <div class="action-buttons">
+            <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn-secondary">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a asp-action="Index" class="btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="album-details-content">
+        <div class="album-cover-section">
+            @if (!string.IsNullOrEmpty(Model.CoverImageUrl))
+            {
+                <img src="@Model.CoverImageUrl" alt="@Model.Title album cover" class="album-cover" />
+            }
+            else
+            {
+                <div class="album-cover placeholder">
+                    <i class="fas fa-music"></i>
                 </div>
-                <button type="submit" class="btn btn-primary">Submit Rating</button>
-            </form>
+            }
+            
+            @if (showAverage && averageRating.HasValue)
+            {
+                <div class="average-rating-badge @GetRatingClass(averageRating.Value)">
+                    <div class="rating-value">@averageRating.Value.ToString("0.0")</div>
+                    <div class="rating-label">/ 10</div>
+                </div>
+            }
         </div>
-    }
-    else
-    {
-        <p>
-            <a asp-area="Identity" asp-page="/Account/Login">Log in</a> to rate this album.
-        </p>
-    }
-</div>
-
-<div class="mt-3">
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+        
+        <div class="album-metadata">
+            <h2 class="album-title">@Model.Title</h2>
+            <div class="album-artist">
+                <i class="fas fa-user-alt"></i> @Model.ArtistName
+            </div>
+            <div class="album-release">
+                <i class="fas fa-calendar-alt"></i> Released: @formattedDate
+            </div>
+            
+            <div class="album-description">
+                <h3>Description</h3>
+                <p>@Model.Description</p>
+            </div>
+            
+            <div class="album-rating-section">
+                <h3>
+                    <i class="fas fa-star"></i> Rating
+                    @if (showAverage && averageRating.HasValue)
+                    {
+                        <span class="rating-display">
+                            <span id="average-rating">@averageRating.Value.ToString("0.0")</span>/10
+                            <span class="rating-count">(@ratingCount ratings)</span>
+                        </span>
+                    }
+                    else if (ratingCount > 0)
+                    {
+                        <span class="rating-display">
+                            <span class="rating-pending">Needs more ratings</span>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="rating-display">
+                            <span class="rating-none">Not rated yet</span>
+                        </span>
+                    }
+                </h3>
+                
+                <div class="rating-visualization">
+                    @if (showAverage && averageRating.HasValue)
+                    {
+                        <div class="stars">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var starFill = (averageRating.Value / 2) >= i ? "full" : 
+                                              ((averageRating.Value / 2) >= (i - 0.5) ? "half" : "empty");
+                                <span class="star @starFill"></span>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <div class="user-rating">
+                        <form id="ratingForm" asp-action="Rate" asp-controller="Albums" method="post">
+                            <input type="hidden" name="albumId" value="@Model?.Id" />
+                            <div class="form-group">
+                                <label>Your Rating:</label>
+                                <div class="rating-selector">
+                                    @for (int i = 1; i <= 10; i++)
+                                    {
+                                        <label class="rating-option @(userRating == i ? "selected" : "")">
+                                            <input type="radio" name="rating" value="@i" @(userRating == i ? "checked" : "") />
+                                            <span>@i</span>
+                                        </label>
+                                    }
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Submit Rating
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div class="login-prompt">
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn-login">
+                            <i class="fas fa-sign-in-alt"></i> Log in to rate this album
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -112,17 +161,33 @@
                             // Update average rating if we have enough ratings
                             if (result.ratingCount >= 2 && result.averageRating != null) {
                                 $('#average-rating').text(result.averageRating.toFixed(1));
-                                $('.average-rating').show();
+                                
+                                // Update the rating badge class
+                                var ratingClass = getRatingClass(result.averageRating);
+                                $('.average-rating-badge')
+                                    .removeClass('rating-high rating-medium rating-low')
+                                    .addClass(ratingClass);
+                                
+                                // Update the star visualization
+                                updateStars(result.averageRating);
+                                
+                                // Show the rating section
+                                $('.average-rating-badge').fadeIn();
+                                $('.rating-visualization').fadeIn();
+                                $('.rating-pending, .rating-none').hide();
+                                $('.rating-display').html('<span id="average-rating">' + 
+                                    result.averageRating.toFixed(1) + '</span>/10 <span class="rating-count">(' + 
+                                    result.ratingCount + ' ratings)</span>');
                             } else {
-                                $('.average-rating').hide();
+                                $('.rating-display').html('<span class="rating-pending">Needs more ratings</span>');
                             }
 
-                            // Show a success message
-                            alert('Rating submitted successfully!');
+                            // Show success notification
+                            showNotification('Rating submitted successfully!', 'success');
                         }
                     },
                     error: function () {
-                        alert('Error submitting rating. Please try again.');
+                        showNotification('Error submitting rating. Please try again.', 'error');
                     }
                 });
             });
@@ -132,41 +197,399 @@
                 $('.rating-option').removeClass('selected');
                 $(this).addClass('selected');
             });
+            
+            // Function to show notification
+            function showNotification(message, type) {
+                const notification = $('<div>')
+                    .addClass('notification ' + type)
+                    .text(message)
+                    .appendTo('body');
+                    
+                setTimeout(function() {
+                    notification.addClass('show');
+                    
+                    setTimeout(function() {
+                        notification.removeClass('show');
+                        setTimeout(function() {
+                            notification.remove();
+                        }, 300);
+                    }, 3000);
+                }, 10);
+            }
+            
+            // Function to update stars
+            function updateStars(rating) {
+                $('.stars').empty();
+                for (let i = 1; i <= 5; i++) {
+                    let starClass;
+                    if ((rating / 2) >= i) {
+                        starClass = 'full';
+                    } else if ((rating / 2) >= (i - 0.5)) {
+                        starClass = 'half';
+                    } else {
+                        starClass = 'empty';
+                    }
+                    $('<span>').addClass('star ' + starClass).appendTo('.stars');
+                }
+            }
+            
+            // Function to get rating class
+            function getRatingClass(rating) {
+                if (rating >= 8) return 'rating-high';
+                if (rating >= 6) return 'rating-medium';
+                return 'rating-low';
+            }
         });
     </script>
 
     <style>
-        .rating-selector {
-            display: flex;
-            margin-bottom: 15px;
+        .album-details-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
         }
-
-        .rating-option {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            text-align: center;
-            line-height: 30px;
-            border: 1px solid #ccc;
-            margin-right: 5px;
+        
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #5D3FD3;
+            padding-bottom: 1rem;
+        }
+        
+        .details-header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin: 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-primary, .btn-secondary, .btn-login {
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
             cursor: pointer;
         }
-
-            .rating-option input {
-                display: none;
-            }
-
-            .rating-option.selected {
-                background-color: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-
-        .album-rating {
+        
+        .btn-primary {
+            background-color: #5D3FD3;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .btn-login {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-primary:hover, .btn-secondary:hover, .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary:hover {
+            background-color: #7D5BE5;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #dee2e6;
+        }
+        
+        .btn-login:hover {
+            background-color: #5a6268;
+        }
+        
+        .album-details-content {
+            display: grid;
+            grid-template-columns: 1fr 2.5fr;
+            gap: 2rem;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .album-cover-section {
+            position: relative;
+        }
+        
+        .album-cover {
+            width: 100%;
+            display: block;
+            aspect-ratio: 1;
+            object-fit: cover;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .album-cover.placeholder {
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+        }
+        
+        .album-cover.placeholder i {
+            font-size: 5rem;
+            color: #ddd;
+        }
+        
+        .average-rating-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .average-rating-badge .rating-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+        
+        .average-rating-badge .rating-label {
+            font-size: 0.9rem;
+        }
+        
+        .rating-high {
+            background-color: #4CAF50;
+        }
+        
+        .rating-medium {
+            background-color: #FFC107;
+        }
+        
+        .rating-low {
+            background-color: #F44336;
+        }
+        
+        .album-metadata {
+            padding: 2rem;
+        }
+        
+        .album-title {
+            font-size: 2rem;
+            color: #333;
+            margin: 0 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .album-artist, .album-release {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .album-description {
+            margin: 1.5rem 0;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .album-description h3 {
+            font-size: 1.3rem;
+            color: #444;
+            margin-bottom: 0.5rem;
+        }
+        
+        .album-description p {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .album-rating-section h3 {
+            font-size: 1.3rem;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .rating-display {
+            font-size: 1rem;
+            font-weight: normal;
+            color: #555;
+            margin-left: 0.5rem;
+        }
+        
+        .rating-count {
+            color: #777;
+            font-size: 0.9rem;
+        }
+        
+        .rating-pending, .rating-none {
+            color: #777;
+            font-style: italic;
+        }
+        
+        .rating-visualization {
+            margin: 1rem 0;
+        }
+        
+        .stars {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .star {
+            position: relative;
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+        }
+        
+        .star:before, .star:after {
+            content: '';
+            position: absolute;
+            background-repeat: no-repeat;
+            background-size: 24px 24px;
+            width: 24px;
+            height: 24px;
+        }
+        
+        .star.full:before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23FFC107' viewBox='0 0 16 16'%3E%3Cpath d='M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z'/%3E%3C/svg%3E");
+        }
+        
+        .star.half:before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23FFC107' viewBox='0 0 16 16'%3E%3Cpath d='M5.354 5.119 7.538.792A.516.516 0 0 1 8 .5c.183 0 .366.097.465.292l2.184 4.327 4.898.696A.537.537 0 0 1 16 6.32a.548.548 0 0 1-.17.445l-3.523 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256a.52.52 0 0 1-.146.05c-.342.06-.668-.254-.6-.642l.83-4.73L.173 6.765a.55.55 0 0 1-.172-.403.58.58 0 0 1 .085-.302.513.513 0 0 1 .37-.245l4.898-.696zM8 12.027a.5.5 0 0 1 .232.056l3.686 1.894-.694-3.957a.565.565 0 0 1 .162-.505l2.907-2.77-4.052-.576a.525.525 0 0 1-.393-.288L8.001 2.223 8 2.226v9.8z'/%3E%3C/svg%3E");
+        }
+        
+        .star.empty:before {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%23DDDDDD' viewBox='0 0 16 16'%3E%3Cpath d='M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.16-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.565.565 0 0 0-.163-.505L1.71 6.745l4.052-.576a.525.525 0 0 0 .393-.288L8 2.223l1.847 3.658a.525.525 0 0 0 .393.288l4.052.575-2.906 2.77a.565.565 0 0 0-.163.506l.694 3.957-3.686-1.894a.503.503 0 0 0-.461 0z'/%3E%3C/svg%3E");
+        }
+        
+        .user-rating {
+            margin-top: 1.5rem;
+        }
+        
+        .user-rating label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .rating-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .rating-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        
+        .rating-option input {
+            display: none;
+        }
+        
+        .rating-option:hover {
+            border-color: #5D3FD3;
+            background-color: #f0ebff;
+        }
+        
+        .rating-option.selected {
+            background-color: #5D3FD3;
+            color: white;
+            border-color: #5D3FD3;
+        }
+        
+        .login-prompt {
+            margin-top: 1.5rem;
+            padding: 1rem;
             background-color: #f8f9fa;
-            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
             border-radius: 5px;
-            margin-bottom: 20px;
+            background-color: white;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #F44336;
+        }
+        
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        
+            
+            .details-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .album-cover-section {
+                max-width: 80%;
+                margin: 0 auto;
+            }
         }
     </style>
+}
+
+@functions {
+    string GetRatingClass(double rating) {
+        if (rating >= 8) return "rating-high";
+        if (rating >= 6) return "rating-medium";
+        return "rating-low";
+    }
 }

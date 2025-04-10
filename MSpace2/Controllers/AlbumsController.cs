@@ -28,7 +28,23 @@ namespace MSpace2.Controllers
         // GET: Albums
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Albums.ToListAsync());
+            var albums = await _context.Albums.ToListAsync();
+
+            // Create a dictionary to store album ratings
+            var albumRatings = new Dictionary<int, (double? AverageRating, int Count)>();
+
+            // Get ratings for all albums
+            foreach (var album in albums)
+            {
+                var averageRating = await _ratingService.GetAverageRatingAsync(album.Id);
+                var ratingCount = await _ratingService.GetRatingCountAsync(album.Id);
+                albumRatings[album.Id] = (averageRating, ratingCount);
+            }
+
+            // Pass the ratings to the view via ViewBag
+            ViewBag.AlbumRatings = albumRatings;
+
+            return View(albums);
         }
         [Authorize]
         // GET: Albums/Details/5

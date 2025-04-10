@@ -1,59 +1,361 @@
 ﻿@model IEnumerable<MSpace2.Data.Entities.Albums>
-
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Albums Collection";
+    var albumRatings = ViewBag.AlbumRatings as Dictionary<int, (double? AverageRating, int Count)>;
 }
 
-<h1>Index</h1>
+<div class="album-listing-container">
+    <header class="page-header">
+        <h1>Album Collection</h1>
+        <a asp-action="Create" class="btn-create">
+            <i class="fas fa-plus-circle"></i> Add New Album
+        </a>
+    </header>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ArtistName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ReleaseDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CoverImageUrl)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ArtistName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ReleaseDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                    <img src="@Html.DisplayFor(modelItem => item.CoverImageUrl)" width="300" />
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+    <div class="album-grid">
+        @foreach (var item in Model)
+        {
+            var rating = albumRatings != null && albumRatings.ContainsKey(item.Id) ? albumRatings[item.Id] : (null, 0);
+            var showRating = rating.Count >= 2;
+            var ratingDisplay = showRating ? rating.AverageRating.Value.ToString("0.0") : "";
+            var ratingClass = showRating ? GetRatingClass(rating.AverageRating.Value) : "";
+            
+            <div class="album-card">
+                <div class="album-image">
+                    @if (!string.IsNullOrEmpty(item.CoverImageUrl))
+                    {
+                        <img src="@item.CoverImageUrl" alt="@item.Title cover" />
+                    }
+                    else
+                    {
+                        <div class="no-image">
+                            <i class="fas fa-music"></i>
+                        </div>
+                    }
+                    
+                    @if (showRating)
+                    {
+                        <div class="rating-badge @ratingClass">
+                            @rating.AverageRating.Value.ToString("0.0")
+                        </div>
+                    }
+                </div>
+                
+                <div class="album-details">
+                    <h3 class="album-title">@item.Title</h3>
+                    <p class="album-artist">@item.ArtistName</p>
+                    
+                    
+                    <div class="album-rating">
+                        @if (showRating)
+                        {
+                            <div class="stars">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    var starFill = (rating.AverageRating.Value / 2) >= i ? "full" : 
+                                                  ((rating.AverageRating.Value / 2) >= (i - 0.5) ? "half" : "empty");
+                                    <span class="star @starFill"></span>
+                                }
+                            </div>
+                            <span class="rating-value">@rating.AverageRating.Value.ToString("0.0")/10</span>
+                            <span class="rating-count">(@rating.Count ratings)</span>
+                        }
+                        else if (rating.Count > 0)
+                        {
+                            <span class="rating-pending">Needs more ratings</span>
+                        }
+                        else
+                        {
+                            <span class="rating-none">Not rated yet</span>
+                        }
+                    </div>
+                    
+                    <div class="album-desc">
+                        @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 120)
+                        {
+                            @(item.Description.Substring(0, 120) + "...")
+                        }
+                        else
+                        {
+                            @item.Description
+                        }
+                    </div>
+                    
+                    <div class="album-actions">
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn-action details">
+                            <i class="fas fa-info-circle"></i> Details
+                        </a>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn-action edit">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn-action delete">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .album-listing-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid #5D3FD3;
+        padding-bottom: 1rem;
+    }
+    
+    .page-header h1 {
+        font-size: 2.5rem;
+        color: #333;
+        margin: 0;
+    }
+    
+    .btn-create {
+        background-color: #5D3FD3;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-create:hover {
+        background-color: #7D5BE5;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .album-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+    
+    .album-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .album-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .album-image {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+        background-color: #f5f5f5;
+    }
+    
+    .album-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    
+    .no-image {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-size: 5rem;
+        color: #ddd;
+    }
+    
+    .rating-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .rating-high {
+        background-color: #4CAF50;
+    }
+    
+    .rating-medium {
+        background-color: #FFC107;
+    }
+    
+    .rating-low {
+        background-color: #F44336;
+    }
+    
+    .album-details {
+        padding: 1.5rem;
+    }
+    
+    .album-title {
+        margin: 0 0 0.5rem;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .album-artist {
+        margin: 0 0 0.25rem;
+        font-size: 1.1rem;
+        color: #555;
+    }
+    
+    .album-year {
+        margin: 0 0 1rem;
+        font-size: 0.9rem;
+        color: #777;
+    }
+    
+    .album-rating {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stars {
+        display: flex;
+        gap: 2px;
+    }
+    
+    .star {
+        position: relative;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+    }
+    
+    .star:before, .star:after {
+        content: '';
+        position: absolute;
+        background-repeat: no-repeat;
+        background-size: 16px 16px;
+        width: 16px;
+        height: 16px;
+    }
+    
+    .star.full:before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23FFC107' viewBox='0 0 16 16'%3E%3Cpath d='M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z'/%3E%3C/svg%3E");
+    }
+    
+    .star.half:before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23FFC107' viewBox='0 0 16 16'%3E%3Cpath d='M5.354 5.119 7.538.792A.516.516 0 0 1 8 .5c.183 0 .366.097.465.292l2.184 4.327 4.898.696A.537.537 0 0 1 16 6.32a.548.548 0 0 1-.17.445l-3.523 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256a.52.52 0 0 1-.146.05c-.342.06-.668-.254-.6-.642l.83-4.73L.173 6.765a.55.55 0 0 1-.172-.403.58.58 0 0 1 .085-.302.513.513 0 0 1 .37-.245l4.898-.696zM8 12.027a.5.5 0 0 1 .232.056l3.686 1.894-.694-3.957a.565.565 0 0 1 .162-.505l2.907-2.77-4.052-.576a.525.525 0 0 1-.393-.288L8.001 2.223 8 2.226v9.8z'/%3E%3C/svg%3E");
+    }
+    
+    .star.empty:before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23DDDDDD' viewBox='0 0 16 16'%3E%3Cpath d='M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.16-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.565.565 0 0 0-.163-.505L1.71 6.745l4.052-.576a.525.525 0 0 0 .393-.288L8 2.223l1.847 3.658a.525.525 0 0 0 .393.288l4.052.575-2.906 2.77a.565.565 0 0 0-.163.506l.694 3.957-3.686-1.894a.503.503 0 0 0-.461 0z'/%3E%3C/svg%3E");
+    }
+    
+    .rating-value {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .rating-count {
+        font-size: 0.85rem;
+        color: #777;
+    }
+    
+    .rating-pending, .rating-none {
+        color: #777;
+        font-style: italic;
+        font-size: 0.9rem;
+    }
+    
+    .album-desc {
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        color: #666;
+        line-height: 1.5;
+        max-height: 4.5em;
+        overflow: hidden;
+    }
+    
+    .album-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    .btn-action {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-action.details {
+        background-color: #e9ecef;
+        color: #495057;
+    }
+    
+    .btn-action.edit {
+        background-color: #e9ecef;
+        color: #0d6efd;
+    }
+    
+    .btn-action.delete {
+        background-color: #e9ecef;
+        color: #dc3545;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .btn-action.details:hover {
+        background-color: #dee2e6;
+    }
+    
+    .btn-action.edit:hover {
+        background-color: #cfe2ff;
+    }
+    
+    .btn-action.delete:hover {
+        background-color: #f8d7da;
+    }
+    
+    
+    }
+</style>
+
+@functions {
+    string GetRatingClass(double rating) {
+        if (rating >= 8) return "rating-high";
+        if (rating >= 6) return "rating-medium";
+        return "rating-low";
+    }
 }
-    </tbody>
-</table>

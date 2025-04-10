@@ -5,7 +5,7 @@
         public int Id { get; set; }
         public string Title { get; set; }
         public string ArtistName { get; set; }
-        public DateTime ReleaseDate { get; set; }
+        public DateOnly? ReleaseDate { get; set; }
         public string Description { get; set; }
         public string CoverImageUrl { get; set; }
     }
