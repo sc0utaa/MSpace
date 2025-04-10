@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,16 +9,20 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using MSpace2.Data;
 using MSpace2.Data.Entities;
+using MSpace2.Data.Migrations;
+using MSpace2.Services;
 
 namespace MSpace2.Controllers
 {
     public class AlbumsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAlbumRatingService _ratingService;
 
-        public AlbumsController(ApplicationDbContext context)
+        public AlbumsController(ApplicationDbContext context, IAlbumRatingService ratingService)
         {
             _context = context;
+            _ratingService= ratingService;
         }
         [Authorize]
         // GET: Albums
@@ -41,10 +46,25 @@ namespace MSpace2.Controllers
                 return NotFound();
             }
 
+            var averageRating = await _ratingService.GetAverageRatingAsync(albums.Id);
+            var ratingCount = await _ratingService.GetRatingCountAsync(albums.Id);
+
+            // Get current user's rating if logged in
+            int? userRating = null;
+            if (User.Identity.IsAuthenticated)
+            {
+                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                userRating = await _ratingService.GetUserRatingAsync(albums.Id, userId);
+            }
+
+            ViewBag.AverageRating = averageRating;
+            ViewBag.RatingCount = ratingCount;
+            ViewBag.UserRating = userRating;
+
             return View(albums);
         }
         [Authorize(Roles = "Admin")]
-        
+
         // GET: Albums/Create
         public IActionResult Create()
         {
@@ -57,7 +77,7 @@ namespace MSpace2.Controllers
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,ArtistName,ReleaseDate,Description,CoverImageUrl")] Albums albums)
+        public async Task<IActionResult> Create([Bind("Id,Title,ArtistName,ReleaseDate,Description,CoverImageUrl")] MSpace2.Data.Entities.Albums albums)
         {
             if (ModelState.IsValid)
             {
@@ -90,7 +110,7 @@ namespace MSpace2.Controllers
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ArtistName,ReleaseDate,Description,CoverImageUrl")] Albums albums)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ArtistName,ReleaseDate,Description,CoverImageUrl")] MSpace2.Data.Entities.Albums albums)
         {
             if (id != albums.Id)
             {

@@ -10,6 +10,17 @@ namespace MSpace2.Data
             : base(options)
         {
         }
-        public DbSet<MSpace2.Data.Entities.Albums> Albums { get; set; } = default!;
+        public DbSet<Albums> Albums { get; set; } = default!;
+        public DbSet<AlbumRating> AlbumRatings { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Create unique constraint so a user can only rate an album once
+            modelBuilder.Entity<AlbumRating>()
+                .HasIndex(r => new { r.AlbumId, r.UserId })
+                .IsUnique();
+        }
     }
 }
