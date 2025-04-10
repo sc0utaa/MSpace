@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -18,13 +19,13 @@ namespace MSpace2.Controllers
         {
             _context = context;
         }
-
+        [Authorize]
         // GET: Albums
         public async Task<IActionResult> Index()
         {
             return View(await _context.Albums.ToListAsync());
         }
-
+        [Authorize]
         // GET: Albums/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -42,7 +43,8 @@ namespace MSpace2.Controllers
 
             return View(albums);
         }
-
+        [Authorize(Roles = "Admin")]
+        
         // GET: Albums/Create
         public IActionResult Create()
         {
@@ -52,6 +54,7 @@ namespace MSpace2.Controllers
         // POST: Albums/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Title,ArtistName,ReleaseDate,Description,CoverImageUrl")] Albums albums)
@@ -64,7 +67,7 @@ namespace MSpace2.Controllers
             }
             return View(albums);
         }
-
+        [Authorize(Roles = "Admin")]
         // GET: Albums/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -84,6 +87,7 @@ namespace MSpace2.Controllers
         // POST: Albums/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,ArtistName,ReleaseDate,Description,CoverImageUrl")] Albums albums)
@@ -117,6 +121,7 @@ namespace MSpace2.Controllers
         }
 
         // GET: Albums/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,6 +140,7 @@ namespace MSpace2.Controllers
         }
 
         // POST: Albums/Delete/5
+        [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
